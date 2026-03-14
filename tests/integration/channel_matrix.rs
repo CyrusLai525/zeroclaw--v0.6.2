@@ -623,7 +623,6 @@ fn send_message_with_subject_preserves_thread() {
 /// - iMessage: sender = phone/email, reply_target = phone/email (same)
 /// - IRC: sender = nick, reply_target = channel_name (distinct!)
 /// - Email: sender = from@, reply_target = from@ (reply goes to sender)
-
 fn make_platform_message(platform: &str) -> ChannelMessage {
     match platform {
         "telegram" => ChannelMessage {
