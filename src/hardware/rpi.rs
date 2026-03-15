@@ -46,7 +46,10 @@ fn is_onboard_led(pin: u8) -> bool {
 
 /// Find the first existing sysfs brightness path for the ACT LED.
 fn led_brightness_path() -> Option<&'static str> {
-    LED_SYSFS_PATHS.iter().copied().find(|p| std::path::Path::new(p).exists())
+    LED_SYSFS_PATHS
+        .iter()
+        .copied()
+        .find(|p| std::path::Path::new(p).exists())
 }
 
 /// Ensure the ACT LED trigger is set to "none" so we can control it.
@@ -199,13 +202,7 @@ impl RpiSystemContext {
         text.lines()
             .skip(2) // header rows
             .find(|l| l.contains(':'))
-            .map(|l| {
-                l.split(':')
-                    .next()
-                    .unwrap_or("")
-                    .trim()
-                    .to_string()
-            })
+            .map(|l| l.split(':').next().unwrap_or("").trim().to_string())
             .filter(|s| !s.is_empty())
     }
 
@@ -305,7 +302,10 @@ impl RpiSystemContext {
         let _ = writeln!(s, "- Hostname: {}", self.hostname);
         let _ = writeln!(s, "- IP: {} (at last boot)", self.ip_address);
         let _ = writeln!(s, "- RAM: {}MB total", self.total_ram_mb);
-        let _ = writeln!(s, "- Runtime: ZeroClaw native (rppal — no serial, no mpremote)");
+        let _ = writeln!(
+            s,
+            "- Runtime: ZeroClaw native (rppal — no serial, no mpremote)"
+        );
         if let Some(ref iface) = self.wifi_interface {
             let _ = writeln!(s, "- WiFi interface: {}", iface);
         }
@@ -379,8 +379,7 @@ impl Tool for GpioRpiWriteTool {
         let pin = args
             .get("pin")
             .and_then(|v| v.as_u64())
-            .ok_or_else(|| anyhow::anyhow!("Missing 'pin' parameter"))?
-            as u8;
+            .ok_or_else(|| anyhow::anyhow!("Missing 'pin' parameter"))? as u8;
         let value = args
             .get("value")
             .and_then(|v| v.as_u64())
@@ -457,8 +456,7 @@ impl Tool for GpioRpiReadTool {
         let pin = args
             .get("pin")
             .and_then(|v| v.as_u64())
-            .ok_or_else(|| anyhow::anyhow!("Missing 'pin' parameter"))?
-            as u8;
+            .ok_or_else(|| anyhow::anyhow!("Missing 'pin' parameter"))? as u8;
 
         // Onboard ACT LED → read from sysfs
         if is_onboard_led(pin) {
@@ -469,7 +467,8 @@ impl Tool for GpioRpiReadTool {
             let state = if value == 0 { "LOW" } else { "HIGH" };
             return Ok(ToolResult {
                 success: true,
-                output: json!({ "pin": pin, "value": value, "state": state, "source": "sysfs" }).to_string(),
+                output: json!({ "pin": pin, "value": value, "state": state, "source": "sysfs" })
+                    .to_string(),
                 error: None,
             });
         }
@@ -538,8 +537,7 @@ impl Tool for GpioRpiBlinkTool {
         let pin = args
             .get("pin")
             .and_then(|v| v.as_u64())
-            .ok_or_else(|| anyhow::anyhow!("Missing 'pin' parameter"))?
-            as u8;
+            .ok_or_else(|| anyhow::anyhow!("Missing 'pin' parameter"))? as u8;
         let times = args
             .get("times")
             .and_then(|v| v.as_u64())
@@ -569,7 +567,10 @@ impl Tool for GpioRpiBlinkTool {
             }
             return Ok(ToolResult {
                 success: true,
-                output: format!("Blinked ACT LED (GPIO {}) × {} ({}/{}ms) via sysfs", pin, times, on_ms, off_ms),
+                output: format!(
+                    "Blinked ACT LED (GPIO {}) × {} ({}/{}ms) via sysfs",
+                    pin, times, on_ms, off_ms
+                ),
                 error: None,
             });
         }
@@ -643,4 +644,3 @@ impl Tool for RpiSystemInfoTool {
         })
     }
 }
-

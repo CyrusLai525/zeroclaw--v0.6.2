@@ -2,11 +2,11 @@
 //!
 //! See `docs/hardware-peripherals-design.md` for the full design.
 
-pub mod registry;
 pub mod device;
-pub mod transport;
-pub mod protocol;
 pub mod gpio;
+pub mod protocol;
+pub mod registry;
+pub mod transport;
 
 #[cfg(all(
     feature = "hardware",
@@ -61,11 +61,11 @@ pub mod tool_registry;
 #[allow(unused_imports)]
 pub use aardvark::AardvarkTransport;
 
-#[allow(unused_imports)]
-pub use tool_registry::{ToolError, ToolRegistry};
 use crate::config::Config;
 use crate::hardware::device::DeviceRegistry;
 use anyhow::Result;
+#[allow(unused_imports)]
+pub use tool_registry::{ToolError, ToolRegistry};
 
 // Re-export config types so wizard can use `hardware::HardwareConfig` etc.
 pub use crate::config::{HardwareConfig, HardwareTransport};

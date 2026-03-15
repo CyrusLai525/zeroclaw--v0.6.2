@@ -244,8 +244,12 @@ pub fn create_board_info_tools(config: &PeripheralsConfig) -> Vec<Box<dyn Tool>>
     }
     let board_names: Vec<String> = config.boards.iter().map(|b| b.board.clone()).collect();
     vec![
-        Box::new(crate::tools::HardwareMemoryMapTool::new(board_names.clone())),
-        Box::new(crate::tools::HardwareBoardInfoTool::new(board_names.clone())),
+        Box::new(crate::tools::HardwareMemoryMapTool::new(
+            board_names.clone(),
+        )),
+        Box::new(crate::tools::HardwareBoardInfoTool::new(
+            board_names.clone(),
+        )),
         Box::new(crate::tools::HardwareMemoryReadTool::new(board_names)),
     ]
 }
