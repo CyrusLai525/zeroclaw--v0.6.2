@@ -144,6 +144,7 @@ pub async fn run_wizard(force: bool) -> Result<Config> {
         observability: ObservabilityConfig::default(),
         autonomy: AutonomyConfig::default(),
         security: crate::config::SecurityConfig::default(),
+        security_ops: crate::config::SecurityOpsConfig::default(),
         runtime: RuntimeConfig::default(),
         reliability: crate::config::ReliabilityConfig::default(),
         scheduler: crate::config::schema::SchedulerConfig::default(),
@@ -181,7 +182,8 @@ pub async fn run_wizard(force: bool) -> Result<Config> {
         mcp: crate::config::McpConfig::default(),
         nodes: crate::config::NodesConfig::default(),
         workspace: crate::config::WorkspaceConfig::default(),
-        security_ops: crate::config::SecurityOpsConfig::default(),
+        notion: crate::config::NotionConfig::default(),
+        node_transport: crate::config::NodeTransportConfig::default(),
     };
 
     println!(
@@ -506,6 +508,7 @@ async fn run_quick_setup_with_home(
         observability: ObservabilityConfig::default(),
         autonomy: AutonomyConfig::default(),
         security: crate::config::SecurityConfig::default(),
+        security_ops: crate::config::SecurityOpsConfig::default(),
         runtime: RuntimeConfig::default(),
         reliability: crate::config::ReliabilityConfig::default(),
         scheduler: crate::config::schema::SchedulerConfig::default(),
@@ -543,7 +546,8 @@ async fn run_quick_setup_with_home(
         mcp: crate::config::McpConfig::default(),
         nodes: crate::config::NodesConfig::default(),
         workspace: crate::config::WorkspaceConfig::default(),
-        security_ops: crate::config::SecurityOpsConfig::default(),
+        notion: crate::config::NotionConfig::default(),
+        node_transport: crate::config::NodeTransportConfig::default(),
     };
 
     config.save().await?;

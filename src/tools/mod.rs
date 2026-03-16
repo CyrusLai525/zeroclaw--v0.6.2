@@ -381,7 +381,6 @@ pub fn all_tools_with_runtime(
     if root_config.security_ops.enabled {
         tool_arcs.push(Arc::new(SecurityOpsTool::new(
             root_config.security_ops.clone(),
-            security.clone(),
         )));
     }
 

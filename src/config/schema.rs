@@ -124,6 +124,9 @@ pub struct Config {
     #[serde(default)]
     pub security: SecurityConfig,
 
+    /// Managed cybersecurity service configuration (`[security_ops]`).
+    pub security_ops: SecurityOpsConfig,
+
     /// Runtime adapter configuration (`[runtime]`). Controls native vs Docker execution.
     #[serde(default)]
     pub runtime: RuntimeConfig,
@@ -272,9 +275,13 @@ pub struct Config {
     #[serde(default)]
     pub workspace: WorkspaceConfig,
 
-    /// Managed cybersecurity service configuration (`[security_ops]`).
+    /// Notion integration configuration (`[notion]`).
     #[serde(default)]
-    pub security_ops: SecurityOpsConfig,
+    pub notion: NotionConfig,
+
+    /// Secure inter-node transport configuration (`[node_transport]`).
+    #[serde(default)]
+    pub node_transport: NodeTransportConfig,
 }
 
 /// Multi-client workspace isolation configuration.
@@ -4646,6 +4653,70 @@ pub fn default_nostr_relays() -> Vec<String> {
     ]
 }
 
+// -- Notion --
+
+/// Notion integration configuration (`[notion]`).
+///
+/// When `enabled = true`, the agent polls a Notion database for pending tasks
+/// and exposes a `notion` tool for querying, reading, creating, and updating pages.
+/// Requires `api_key` (or the `NOTION_API_KEY` env var) and `database_id`.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct NotionConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub api_key: String,
+    #[serde(default)]
+    pub database_id: String,
+    #[serde(default = "default_notion_poll_interval")]
+    pub poll_interval_secs: u64,
+    #[serde(default = "default_notion_status_prop")]
+    pub status_property: String,
+    #[serde(default = "default_notion_input_prop")]
+    pub input_property: String,
+    #[serde(default = "default_notion_result_prop")]
+    pub result_property: String,
+    #[serde(default = "default_notion_max_concurrent")]
+    pub max_concurrent: usize,
+    #[serde(default = "default_notion_recover_stale")]
+    pub recover_stale: bool,
+}
+
+fn default_notion_poll_interval() -> u64 {
+    5
+}
+fn default_notion_status_prop() -> String {
+    "Status".into()
+}
+fn default_notion_input_prop() -> String {
+    "Input".into()
+}
+fn default_notion_result_prop() -> String {
+    "Result".into()
+}
+fn default_notion_max_concurrent() -> usize {
+    4
+}
+fn default_notion_recover_stale() -> bool {
+    true
+}
+
+impl Default for NotionConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            api_key: String::new(),
+            database_id: String::new(),
+            poll_interval_secs: default_notion_poll_interval(),
+            status_property: default_notion_status_prop(),
+            input_property: default_notion_input_prop(),
+            result_property: default_notion_result_prop(),
+            max_concurrent: default_notion_max_concurrent(),
+            recover_stale: default_notion_recover_stale(),
+        }
+    }
+}
+
 // ── Security ops config ─────────────────────────────────────────
 
 /// Managed Cybersecurity Service (MCSS) dashboard agent configuration (`[security_ops]`).
@@ -4728,6 +4799,7 @@ impl Default for Config {
             observability: ObservabilityConfig::default(),
             autonomy: AutonomyConfig::default(),
             security: SecurityConfig::default(),
+            security_ops: SecurityOpsConfig::default(),
             runtime: RuntimeConfig::default(),
             reliability: ReliabilityConfig::default(),
             scheduler: SchedulerConfig::default(),
@@ -4765,7 +4837,8 @@ impl Default for Config {
             mcp: McpConfig::default(),
             nodes: NodesConfig::default(),
             workspace: WorkspaceConfig::default(),
-            security_ops: SecurityOpsConfig::default(),
+            notion: NotionConfig::default(),
+            node_transport: NodeTransportConfig::default(),
         }
     }
 }
@@ -5263,12 +5336,6 @@ impl Config {
                 &store,
                 &mut config.storage.provider.config.db_url,
                 "config.storage.provider.config.db_url",
-            )?;
-
-            decrypt_optional_secret(
-                &store,
-                &mut config.security_ops.siem_integration,
-                "config.security_ops.siem_integration",
             )?;
 
             for agent in config.agents.values_mut() {
@@ -5913,28 +5980,25 @@ impl Config {
             validate_mcp_config(&self.mcp)?;
         }
 
-        // Security ops
-        let severity = self
-            .security_ops
-            .max_auto_severity
-            .trim()
-            .to_ascii_lowercase();
-        if !["low", "medium", "high", "critical"].contains(&severity.as_str()) {
-            anyhow::bail!(
-                "security_ops.max_auto_severity must be one of: low, medium, high, critical; got '{}'",
-                self.security_ops.max_auto_severity
-            );
-        }
-        if self.security_ops.enabled {
-            if self.security_ops.playbooks_dir.trim().is_empty() {
+        // Project intelligence
+        if self.project_intel.enabled {
+            let lang = &self.project_intel.default_language;
+            if !["en", "de", "fr", "it"].contains(&lang.as_str()) {
                 anyhow::bail!(
-                    "security_ops.playbooks_dir must not be empty when security_ops is enabled"
+                    "project_intel.default_language must be one of: en, de, fr, it (got '{lang}')"
                 );
             }
-            if self.security_ops.report_output_dir.trim().is_empty() {
+            let sens = &self.project_intel.risk_sensitivity;
+            if !["low", "medium", "high"].contains(&sens.as_str()) {
                 anyhow::bail!(
-                    "security_ops.report_output_dir must not be empty when security_ops is enabled"
+                    "project_intel.risk_sensitivity must be one of: low, medium, high (got '{sens}')"
                 );
+            }
+            if let Some(ref tpl_dir) = self.project_intel.templates_dir {
+                let path = std::path::Path::new(tpl_dir);
+                if !path.exists() {
+                    anyhow::bail!("project_intel.templates_dir path does not exist: {tpl_dir}");
+                }
             }
         }
 
@@ -6356,12 +6420,6 @@ impl Config {
             &store,
             &mut config_to_save.storage.provider.config.db_url,
             "config.storage.provider.config.db_url",
-        )?;
-
-        encrypt_optional_secret(
-            &store,
-            &mut config_to_save.security_ops.siem_integration,
-            "config.security_ops.siem_integration",
         )?;
 
         for agent in config_to_save.agents.values_mut() {
@@ -6989,6 +7047,7 @@ default_temperature = 0.7
                 non_cli_excluded_tools: vec![],
             },
             security: SecurityConfig::default(),
+            security_ops: SecurityOpsConfig::default(),
             runtime: RuntimeConfig {
                 kind: "docker".into(),
                 ..RuntimeConfig::default()
@@ -7071,7 +7130,8 @@ default_temperature = 0.7
             mcp: McpConfig::default(),
             nodes: NodesConfig::default(),
             workspace: WorkspaceConfig::default(),
-            security_ops: SecurityOpsConfig::default(),
+            notion: NotionConfig::default(),
+            node_transport: NodeTransportConfig::default(),
         };
 
         let toml_str = toml::to_string_pretty(&config).unwrap();
@@ -7330,6 +7390,7 @@ tool_dispatcher = "xml"
             observability: ObservabilityConfig::default(),
             autonomy: AutonomyConfig::default(),
             security: SecurityConfig::default(),
+            security_ops: SecurityOpsConfig::default(),
             runtime: RuntimeConfig::default(),
             reliability: ReliabilityConfig::default(),
             scheduler: SchedulerConfig::default(),
@@ -7367,7 +7428,8 @@ tool_dispatcher = "xml"
             mcp: McpConfig::default(),
             nodes: NodesConfig::default(),
             workspace: WorkspaceConfig::default(),
-            security_ops: SecurityOpsConfig::default(),
+            notion: NotionConfig::default(),
+            node_transport: NodeTransportConfig::default(),
         };
 
         config.save().await.unwrap();
