@@ -1,10 +1,42 @@
-//! Chat tab -- placeholder for PR-14.
+//! Chat tab -- message list and text input.
 
-use ratatui::prelude::*;
-use ratatui::widgets::*;
+use crate::tui::theme;
+use ratatui::{prelude::*, widgets::*};
 
 pub fn render(frame: &mut Frame, area: Rect) {
-    let placeholder = Paragraph::new("Chat (not yet implemented)")
-        .block(Block::default().borders(Borders::ALL).title(" Chat "));
-    frame.render_widget(placeholder, area);
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Min(0),    // Messages
+            Constraint::Length(3), // Input
+        ])
+        .split(area);
+
+    // Messages area
+    let messages = vec![Line::from(vec![
+        Span::styled("system", Style::default().fg(theme::FG_DIM)),
+        Span::raw(": Connect to gateway to start chatting."),
+    ])];
+
+    let messages_widget = Paragraph::new(messages)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Chat "),
+        )
+        .wrap(Wrap { trim: false })
+        .style(Style::default().fg(theme::FG));
+    frame.render_widget(messages_widget, chunks[0]);
+
+    // Input area
+    let input = Paragraph::new(" Type a message... (not connected)")
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Input "),
+        )
+        .style(Style::default().fg(theme::FG_DIM));
+    frame.render_widget(input, chunks[1]);
 }
