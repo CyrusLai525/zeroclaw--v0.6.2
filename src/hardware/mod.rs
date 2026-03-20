@@ -241,6 +241,7 @@ fn inject_rpi_context(
 pub async fn boot(
     peripherals: &crate::config::PeripheralsConfig,
 ) -> anyhow::Result<HardwareBootResult> {
+    use self::serial::HardwareSerialTransport;
     use device::DeviceCapabilities;
 
     let mut registry_inner = DeviceRegistry::discover().await;
