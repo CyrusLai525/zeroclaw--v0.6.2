@@ -9,7 +9,7 @@ COPY web/ .
 RUN npm run build
 
 # ── Stage 1: Build ────────────────────────────────────────────
-FROM rust:1.94-slim@sha256:da9dab7a6b8dd428e71718402e97207bb3e54167d37b5708616050b1e8f60ed6 AS builder
+FROM rust:1.94-slim AS builder
 
 WORKDIR /app
 ARG ZEROCLAW_CARGO_FEATURES="memory-postgres,channel-lark,whatsapp-web"
@@ -87,7 +87,7 @@ RUN mkdir -p /zeroclaw-data/.zeroclaw /zeroclaw-data/workspace && \
     chown -R 65534:65534 /zeroclaw-data
 
 # ── Stage 2: Development Runtime (Debian) ────────────────────
-FROM debian:trixie-slim@sha256:f6e2cfac5cf956ea044b4bd75e6397b4372ad88fe00908045e9a0d21712ae3ba AS dev
+FROM debian:trixie-slim AS dev
 
 # Install essential runtime dependencies only (use docker-compose.override.yml for dev tools)
 RUN apt-get update && apt-get install -y \
@@ -125,7 +125,7 @@ ENTRYPOINT ["zeroclaw"]
 CMD ["daemon"]
 
 # ── Stage 3: Production Runtime (Distroless) ─────────────────
-FROM gcr.io/distroless/cc-debian13:nonroot@sha256:84fcd3c223b144b0cb6edc5ecc75641819842a9679a3a58fd6294bec47532bf7 AS release
+FROM gcr.io/distroless/cc-debian13:nonroot AS release
 
 COPY --from=builder /app/zeroclaw /usr/local/bin/zeroclaw
 COPY --from=builder /zeroclaw-data /zeroclaw-data
@@ -148,4 +148,4 @@ EXPOSE 42617
 HEALTHCHECK --interval=60s --timeout=10s --retries=3 --start-period=10s \
     CMD ["zeroclaw", "status", "--format=exit-code"]
 ENTRYPOINT ["zeroclaw"]
-CMD ["gateway"]
+CMD ["daemon"]
