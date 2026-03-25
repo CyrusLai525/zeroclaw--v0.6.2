@@ -18,7 +18,7 @@ ARG ZEROCLAW_CARGO_FEATURES="memory-postgres,channel-lark,whatsapp-web"
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y \
-        pkg-config \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # 1. Copy manifests to cache dependencies
@@ -37,9 +37,9 @@ RUN --mount=type=cache,id=zeroclaw-cargo-registry,target=/usr/local/cargo/regist
     --mount=type=cache,id=zeroclaw-cargo-git,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=zeroclaw-target,target=/app/target,sharing=locked \
     if [ -n "$ZEROCLAW_CARGO_FEATURES" ]; then \
-      cargo build --release --locked --features "$ZEROCLAW_CARGO_FEATURES"; \
+    cargo build --release --locked --features "$ZEROCLAW_CARGO_FEATURES"; \
     else \
-      cargo build --release --locked; \
+    cargo build --release --locked; \
     fi
 RUN rm -rf src benches
 
@@ -53,12 +53,12 @@ RUN --mount=type=cache,id=zeroclaw-cargo-registry,target=/usr/local/cargo/regist
     --mount=type=cache,id=zeroclaw-cargo-git,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=zeroclaw-target,target=/app/target,sharing=locked \
     rm -rf target/release/.fingerprint/zeroclawlabs-* \
-           target/release/deps/zeroclawlabs-* \
-           target/release/incremental/zeroclawlabs-* && \
+    target/release/deps/zeroclawlabs-* \
+    target/release/incremental/zeroclawlabs-* && \
     if [ -n "$ZEROCLAW_CARGO_FEATURES" ]; then \
-      cargo build --release --locked --features "$ZEROCLAW_CARGO_FEATURES"; \
+    cargo build --release --locked --features "$ZEROCLAW_CARGO_FEATURES"; \
     else \
-      cargo build --release --locked; \
+    cargo build --release --locked; \
     fi && \
     cp target/release/zeroclaw /app/zeroclaw && \
     strip /app/zeroclaw
@@ -68,22 +68,22 @@ RUN size=$(stat -c%s /app/zeroclaw) && \
 # Prepare runtime directory structure and default config inline (no extra stage)
 RUN mkdir -p /zeroclaw-data/.zeroclaw /zeroclaw-data/workspace && \
     printf '%s\n' \
-        'workspace_dir = "/zeroclaw-data/workspace"' \
-        'config_path = "/zeroclaw-data/.zeroclaw/config.toml"' \
-        'api_key = ""' \
-        'default_provider = "openrouter"' \
-        'default_model = "anthropic/claude-sonnet-4-20250514"' \
-        'default_temperature = 0.7' \
-        '' \
-        '[gateway]' \
-        'port = 42617' \
-        'host = "[::]"' \
-        'allow_public_bind = true' \
-        '' \
-        '[autonomy]' \
-        'level = "supervised"' \
-        'auto_approve = ["file_read", "file_write", "file_edit", "memory_recall", "memory_store", "web_search_tool", "web_fetch", "calculator", "glob_search", "content_search", "image_info", "weather", "git_operations"]' \
-        > /zeroclaw-data/.zeroclaw/config.toml && \
+    'workspace_dir = "/zeroclaw-data/workspace"' \
+    'config_path = "/zeroclaw-data/.zeroclaw/config.toml"' \
+    'api_key = ""' \
+    'default_provider = "openrouter"' \
+    'default_model = "anthropic/claude-sonnet-4-20250514"' \
+    'default_temperature = 0.7' \
+    '' \
+    '[gateway]' \
+    'port = 42617' \
+    'host = "[::]"' \
+    'allow_public_bind = true' \
+    '' \
+    '[autonomy]' \
+    'level = "supervised"' \
+    'auto_approve = ["file_read", "file_write", "file_edit", "memory_recall", "memory_store", "web_search_tool", "web_fetch", "calculator", "glob_search", "content_search", "image_info", "weather", "git_operations"]' \
+    > /zeroclaw-data/.zeroclaw/config.toml && \
     chown -R 65534:65534 /zeroclaw-data
 
 # ── Stage 2: Development Runtime (Debian) ────────────────────
@@ -148,4 +148,4 @@ EXPOSE 42617
 HEALTHCHECK --interval=60s --timeout=10s --retries=3 --start-period=10s \
     CMD ["zeroclaw", "status", "--format=exit-code"]
 ENTRYPOINT ["zeroclaw"]
-CMD ["daemon"]
+CMD ["gateway"]
